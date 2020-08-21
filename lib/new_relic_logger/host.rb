@@ -56,7 +56,7 @@ module NewRelicLogger
       end
 
       @queue.close
-      # @thread&.exit
+      @thread&.exit
     end
   end
 end
