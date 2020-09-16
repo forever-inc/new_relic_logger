@@ -32,7 +32,13 @@ module NewRelicLogger
         message = @queue.pop
         break if message == STOP_MESSAGE
 
-        Net::HTTP.post(REGIONS[@region], { service: ENV['NEW_RELIC_APP_NAME'], message: message }.to_json, headers)
+        response = Net::HTTP.post(REGIONS[@region], { service: ENV['NEW_RELIC_APP_NAME'], message: message }.to_json, headers)
+
+        begin
+          response.value # raises an error if the post was unsuccessful
+        rescue => e
+          NewRelic::Agent.notice_error(e, custom_params: { message: message })
+        end
       end
     end
 
@@ -56,7 +62,7 @@ module NewRelicLogger
       end
 
       @queue.close
-      @thread.exit
+      @thread&.exit
     end
   end
 end
