@@ -40,7 +40,7 @@ module NewRelicLogger
 
         # break if message == STOP_MESSAGE
 
-        response = Net::HTTP.post(REGIONS[@region], { common: { attributes: { service: ENV['NEW_RELIC_APP_NAME'] } }, logs: messages }.to_json, headers)
+        response = Net::HTTP.post(REGIONS[@region], { service: ENV['NEW_RELIC_APP_NAME'], logs: messages }.to_json, headers)
 
         begin
           response.value # raises an error if the post was unsuccessful
