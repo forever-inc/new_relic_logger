@@ -26,7 +26,7 @@ module NewRelicLogger
     end
 
     def write(message)
-      @queue << message
+      @queue << JSON.parse(message)
 
       @thread = Thread.new { run } unless @thread&.alive?
     end
