@@ -1,5 +1,4 @@
 require "new_relic_logger/host"
-require 'logger'
 
 module NewRelicLogger
   class ConfigurationError < StandardError; end
