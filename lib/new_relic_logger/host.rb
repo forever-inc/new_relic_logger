@@ -15,6 +15,11 @@ module NewRelicLogger
     QUEUE_SIZE         = ENV.fetch('NEW_RELIC_LOGGING_QUEUE_SIZE') { 100 }.to_i
     QUEUE_WAIT_TIMEOUT = ENV.fetch('NEW_RELIC_LOGGING_QUEUE_WAIT_TIMEOUT') { 30 }.to_i
 
+    LOGS_PAYLOAD       = [{ logs: [] }].to_json.freeze
+    LOGS_PAYLOAD_REGEX = /(\[\])/.freeze
+    OPEN_BRACKET       = '['.freeze
+    CLOSE_BRACKET      = ']'.freeze
+
     def initialize(license_key, region)
       @license_key  = license_key
       @region       = region
@@ -26,7 +31,7 @@ module NewRelicLogger
     end
 
     def write(message)
-      @queue << JSON.parse(message)
+      @queue << message
 
       @thread = Thread.new { run } unless @thread&.alive?
     end
@@ -40,7 +45,8 @@ module NewRelicLogger
 
         # break if message == STOP_MESSAGE
 
-        response = Net::HTTP.post(REGIONS[@region], [{ logs: messages }].to_json, headers)
+        logs     = LOGS_PAYLOAD.gsub(LOGS_PAYLOAD_REGEX, OPEN_BRACKET << messages.join(',') << CLOSE_BRACKET)
+        response = Net::HTTP.post(REGIONS[@region], logs, headers)
 
         begin
           response.value # raises an error if the post was unsuccessful
