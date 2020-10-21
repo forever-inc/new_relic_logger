@@ -3,10 +3,6 @@ require "new_relic_logger/log_queue"
 
 module NewRelicLogger
   class Host
-    STOP_MESSAGE   = :stop
-    STOP_MAX_WAIT  = 10 # max seconds to wait for queue shutdown clearing
-    STOP_WAIT_STEP = 0.2 # sleep duration (seconds) while shutting down
-
     REGIONS = {
       'us' => URI('https://log-api.newrelic.com/log/v1'),
       'eu' => URI('https://log-api.eu.newrelic.com/log/v1')
@@ -19,6 +15,9 @@ module NewRelicLogger
     LOGS_PAYLOAD_REGEX = /(\[\])/.freeze
     OPEN_BRACKET       = '['.freeze
     CLOSE_BRACKET      = ']'.freeze
+
+    STOP_MAX_WAIT  = 10 # max seconds to wait for queue shutdown clearing
+    STOP_WAIT_STEP = 0.2 # sleep duration (seconds) while shutting down
 
     def initialize(license_key, region)
       @license_key  = license_key
@@ -39,19 +38,14 @@ module NewRelicLogger
     def run
       loop do
         messages = @queue.pop_with_timeout(QUEUE_WAIT_TIMEOUT)
-        # puts "\n!!!"
-        # puts messages.length
-        # puts messages.map { |m| JSON.parse(m)['message'] }.join("\n")
+        logs     = LOGS_PAYLOAD.gsub(LOGS_PAYLOAD_REGEX, messages.join(',').prepend(OPEN_BRACKET).concat(CLOSE_BRACKET))
 
-        # break if message == STOP_MESSAGE
-
-        logs     = LOGS_PAYLOAD.gsub(LOGS_PAYLOAD_REGEX, OPEN_BRACKET << messages.join(',') << CLOSE_BRACKET)
         response = Net::HTTP.post(REGIONS[@region], logs, headers)
 
         begin
           response.value # raises an error if the post was unsuccessful
         rescue => e
-          NewRelic::Agent.notice_error(e, custom_params: { message: message })
+          NewRelic::Agent.notice_error(e)
         end
       end
     end
