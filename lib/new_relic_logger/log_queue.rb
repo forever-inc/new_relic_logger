@@ -24,6 +24,17 @@ module NewRelicLogger
       end
     end
 
+    def concat(messages)
+      unless @queue_open
+        raise ClosedQueueError.new('queue closed')
+      end
+
+      @mutex.synchronize do
+        @queue.concat(messages)
+        @cv.signal if @queue.length >= @max_queue_size
+      end
+    end
+
     def pop_with_timeout(timeout)
       if timeout <= 0
         raise IllegalArgumentException.new('timeout must be greater than 0')
