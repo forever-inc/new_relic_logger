@@ -46,6 +46,7 @@ module NewRelicLogger
           response.value # raises an error if the post was unsuccessful
         rescue => e
           NewRelic::Agent.notice_error(e)
+          @queue.concat(messages)
         end
       end
     end
